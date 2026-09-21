@@ -476,29 +476,8 @@
     <div class="sidebar-footer">
       <div class="model-badge">
         <div style="margin-bottom:4px;font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em">Model</div>
-        <select id="modelDisplay" onchange="MODEL=this.value" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--accent2);font-size:12px;font-weight:600;cursor:pointer;outline:none;padding:3px">
-          <option value="qwen/qwen3-8b">Qwen3-8B (free)</option>
-          <option value="qwen/qwen3-14b">Qwen3-14B</option>
-          <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
-          <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
-          <option value="anthropic/claude-sonnet-4-5">Claude Sonnet 4.5</option>
-          <option value="deepseek/deepseek-r1">DeepSeek R1</option>
-          <option value="openai/gpt-4o">GPT-4o</option>
-        </select>
-        <div style="margin-top:4px;font-size:10px;color:var(--text-dim)">via OpenRouter</div>
-      </div>
-      <div style="margin-top:10px;">
-        <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">🔑 API Key</div>
-        <input
-          type="password"
-          id="keyInput"
-          placeholder="sk-or-v1-..."
-          style="width:100%;padding:7px 9px;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-size:11px;outline:none;font-family:monospace;box-sizing:border-box;"
-          oninput="saveKey(this.value)"
-          onfocus="this.type='text'"
-          onblur="this.type='password'"
-        />
-        <div id="keyStatus" style="margin-top:4px;font-size:10px;color:var(--text-dim)">Paste your key above</div>
+        <div class="model-name" style="color:var(--accent2);font-size:12px;font-weight:600">qwen3.5:9b-q4_K_M</div>
+        <div style="margin-top:4px;font-size:10px;color:var(--text-dim)">via Cloudflare Tunnel</div>
       </div>
     </div>
   </div>
@@ -508,7 +487,7 @@
       <div class="welcome" id="welcome">
         <div style="font-size:48px;margin-bottom:12px">∑</div>
         <h1>MathGPT Local</h1>
-        <p>Your personal AI math solver powered by the best AI models.<br>Powered by <strong style="-webkit-text-fill-color:var(--accent2)">OpenRouter</strong> — paste your API key in the sidebar to begin.</p>
+        <p>Your personal AI math solver running on your local AI.<br>Powered by <strong style="-webkit-text-fill-color:var(--accent2)">OpenRouter</strong> No sign-in needed — powered by your home computer.</p>
         <div class="examples" id="examples">
           <div class="example" onclick="fillInput(this)"><strong>Calculus</strong>Find the derivative of f(x) = x³ · sin(x) using the product rule</div>
           <div class="example" onclick="fillInput(this)"><strong>Algebra</strong>Solve the system: 2x + 3y = 12 and x − y = 1</div>
@@ -557,8 +536,8 @@
 
 <script>
 // ─── Config ──────────────────────────────────────────────────────────
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1';
-let MODEL = 'qwen/qwen3-8b';
+const OPENROUTER_URL = 'https://internal-knowing-far-newer.trycloudflare.com/v1';
+let MODEL = 'qwen3.5:9b-q4_K_M';
 let API_KEY = localStorage.getItem('or_api_key') || '';
 let currentMode = 'math';
 let currentTool = 'chat';
@@ -620,15 +599,10 @@ function saveKey(val) {
   }
 }
 async function checkStatus() {
-  API_KEY = localStorage.getItem('or_api_key') || document.getElementById('keyInput')?.value.trim() || '';
-  if (!API_KEY) { setStatus(false, 'No key'); return; }
   try {
-    const r = await fetch(`${OPENROUTER_URL}/auth/key`, {
-      headers: {'Authorization': `Bearer ${API_KEY}`},
-      signal: AbortSignal.timeout(5000)
-    });
-    setStatus(r.ok, r.ok ? MODEL : 'Invalid key');
-  } catch { setStatus(false, 'Offline'); }
+    const r = await fetch(`${OPENROUTER_URL.replace('/v1','/api/tags')}`, {signal: AbortSignal.timeout(5000)});
+    setStatus(r.ok, r.ok ? MODEL : 'Unreachable');
+  } catch { setStatus(false, 'Tunnel offline'); }
 }
 
 function setStatus(online, label = 'Offline') {
@@ -808,18 +782,11 @@ async function send() {
       ...chatHistory
     ];
 
-    if (!API_KEY) {
-      document.getElementById('thinking')?.remove();
-      appendMessage('assistant', '⚠️ Paste your OpenRouter API key in the sidebar field first.');
-      isStreaming = false; document.getElementById('sendBtn').disabled = false; return;
-    }
     const res = await fetch(`${OPENROUTER_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`,
-        'HTTP-Referer': 'file://mathgpt-local',
-        'X-Title': 'MathGPT Local'
+        'HTTP-Referer': 'https://bndzclawd-coder.github.io'
       },
       body: JSON.stringify({model: MODEL, messages, stream: true})
     });
